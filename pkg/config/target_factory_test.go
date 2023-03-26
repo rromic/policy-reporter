@@ -614,3 +614,129 @@ func Test_GetValuesFromMountedSecret(t *testing.T) {
 		}
 	})
 }
+
+func Test_GetValuesFromMountedSecretAndSecret(t *testing.T) {
+	factory := config.NewTargetFactory("default", secrets.NewClient(newFakeClient()))
+	mountSecret()
+	defer os.Remove(mountedSecret)
+
+	t.Run("Get Loki values from MountedSecret", func(t *testing.T) {
+		clients := factory.LokiClients(config.Loki{MountedSecret: mountedSecret})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		fv := reflect.ValueOf(clients[0]).Elem().FieldByName("host")
+		if v := fv.String(); v != "http://localhost:9200/api/prom/push" {
+			t.Errorf("Expected host from mounted secret, got %s", v)
+		}
+	})
+
+	t.Run("Get Elasticsearch values from MountedSecret", func(t *testing.T) {
+		clients := factory.ElasticsearchClients(config.Elasticsearch{MountedSecret: mountedSecret, SecretRef: secretName})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		client := reflect.ValueOf(clients[0]).Elem()
+
+		host := client.FieldByName("host").String()
+		if host != "http://localhost:9200" {
+			t.Errorf("Expected host from mounted secret, got %s", host)
+		}
+
+		username := client.FieldByName("username").String()
+		if username != "username" {
+			t.Errorf("Expected username from mounted secret, got %s", username)
+		}
+
+		password := client.FieldByName("password").String()
+		if password != "password" {
+			t.Errorf("Expected password from mounted secret, got %s", password)
+		}
+	})
+
+	t.Run("Get Discord values from MountedSecret", func(t *testing.T) {
+		clients := factory.DiscordClients(config.Discord{MountedSecret: mountedSecret, SecretRef: secretName})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		client := reflect.ValueOf(clients[0]).Elem()
+
+		webhook := client.FieldByName("webhook").String()
+		if webhook != "http://localhost:9200/webhook" {
+			t.Errorf("Expected webhook from mounted secret, got %s", webhook)
+		}
+	})
+
+	t.Run("Get MS Teams values from MountedSecret", func(t *testing.T) {
+		clients := factory.TeamsClients(config.Teams{MountedSecret: mountedSecret, SecretRef: secretName})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		client := reflect.ValueOf(clients[0]).Elem()
+
+		webhook := client.FieldByName("webhook").String()
+		if webhook != "http://localhost:9200/webhook" {
+			t.Errorf("Expected webhook from mounted secret, got %s", webhook)
+		}
+	})
+
+	t.Run("Get Slack values from MountedSecret", func(t *testing.T) {
+		clients := factory.SlackClients(config.Slack{MountedSecret: mountedSecret, SecretRef: secretName})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		client := reflect.ValueOf(clients[0]).Elem()
+
+		webhook := client.FieldByName("webhook").String()
+		if webhook != "http://localhost:9200/webhook" {
+			t.Errorf("Expected webhook from mounted secret, got %s", webhook)
+		}
+	})
+
+	t.Run("Get Webhook Authentication Token from MountedSecret", func(t *testing.T) {
+		clients := factory.WebhookClients(config.Webhook{MountedSecret: mountedSecret, SecretRef: secretName})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+
+		client := reflect.ValueOf(clients[0]).Elem()
+
+		token := client.FieldByName("headers").MapIndex(reflect.ValueOf("Authorization")).String()
+		if token != "token" {
+			t.Errorf("Expected token from mounted secret, got %s", token)
+		}
+	})
+
+	t.Run("Get S3 values from MountedSecret", func(t *testing.T) {
+		clients := factory.S3Clients(config.S3{MountedSecret: mountedSecret, SecretRef: secretName, Endpoint: "endpoint", Bucket: "bucket", Region: "region"})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+	})
+
+	t.Run("Get S3 values from MountedSecret with KMS", func(t *testing.T) {
+		clients := factory.S3Clients(config.S3{MountedSecret: mountedSecret, SecretRef: secretName, Endpoint: "endpoint", Bucket: "bucket", Region: "region", BucketKeyEnabled: true, ServerSideEncryption: "aws:kms"})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+	})
+
+	t.Run("Get Kinesis values from MountedSecret", func(t *testing.T) {
+		clients := factory.KinesisClients(config.Kinesis{MountedSecret: mountedSecret, SecretRef: secretName, Endpoint: "endpoint", StreamName: "stream", Region: "region"})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+	})
+
+	t.Run("Get GCS values from MountedSecret", func(t *testing.T) {
+		clients := factory.GCSClients(config.GCS{MountedSecret: mountedSecret, SecretRef: secretName, Bucket: "bucket"})
+		if len(clients) != 1 {
+			t.Error("Expected one client created")
+		}
+	})
+}
